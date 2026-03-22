@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-primary-green: #00F63E;
+  --color-bg-dark: #131313;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-dark text-primary-green font-mono selection:bg-primary-green selection:text-black;
+    background-image: linear-gradient(rgba(19, 19, 19, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
+                      linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 4px, 3px 100%;
+  }
+}
+
+@layer utilities {
+  .crt-glow {
+    text-shadow: 0 0 8px rgba(0, 246, 62, 0.6);
+  }
+  
+  .crt-glow-strong {
+    text-shadow: 0 0 12px rgba(0, 246, 62, 0.8);
+  }
+
+  .scanlines {
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+  }
+
+  .cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    from, to { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .pixel-border {
+    box-shadow: 2px 2px 0px 0px #00f63e;
+  }
+}
