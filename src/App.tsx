@@ -1,71 +1,148 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Terminal, 
-  Settings, 
-  Power, 
-  Cpu, 
-  MapPin, 
-  ArrowRight, 
-  Code, 
-  Cloud, 
-  Shield, 
-  Database, 
+import {
+  Terminal,
+  Settings,
+  Power,
+  Cpu,
+  MapPin,
+  ArrowRight,
+  Code,
+  Cloud,
+  Shield,
+  Database,
   CheckCircle2,
   Github,
   Linkedin,
   ExternalLink,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Menu
 } from 'lucide-react';
+
+// Utility: remove common indentation from template literals so ASCII art aligns
+const dedent = (s: string) => {
+  const lines = s.replace(/\r/g, '').split('\n');
+  while (lines.length && lines[0].trim() === '') lines.shift();
+  while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+  const indents = lines.filter(l => l.trim()).map(l => (l.match(/^(\s*)/) || ['', ''])[1].length);
+  const minIndent = indents.length ? Math.min(...indents) : 0;
+  return lines.map(l => l.slice(minIndent)).join('\n');
+};
 
 // --- Types ---
 
 type Screen = 'HOME' | 'EXP' | 'SKILLS' | 'PROJ';
 
+// Auto-scaling ASCII pre to fit container width (prevents horizontal scroll on mobile)
+const AsciiPre = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
+  const preRef = useRef<HTMLElement | null>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = preRef.current as HTMLElement | null;
+    if (!el) return;
+    const wrapper = el.parentElement as HTMLElement;
+
+    const fit = () => {
+      const parentW = wrapper ? wrapper.clientWidth : el.clientWidth;
+      const scrollW = el.scrollWidth || el.clientWidth;
+      const s = Math.min(1, parentW / scrollW);
+      setScale(s);
+    };
+
+    fit();
+    const onResize = () => fit();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [children]);
+
+  return (
+    <div style={{ width: '100%', overflow: 'hidden' }}>
+      <pre
+        ref={preRef as any}
+        className={className}
+        style={{ ...style, transform: `scale(${scale})`, transformOrigin: 'left top', display: 'block' }}
+      >
+        {children}
+      </pre>
+    </div>
+  );
+};
+
 // --- Components ---
 
-const Header = ({ currentScreen, setScreen }: { currentScreen: Screen, setScreen: (s: Screen) => void }) => (
-  <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-2 bg-[#131313] border-b border-[#00F63E] shadow-[0_0_8px_rgba(0,246,62,0.3)]">
-    <div className="text-lg font-bold text-[#00F63E] animate-pulse font-mono uppercase tracking-widest crt-glow">
-      PRIYANSHU_ARYA_OS_V1.0.4
-    </div>
-    <nav className="hidden md:flex items-center gap-6 font-mono uppercase tracking-widest text-xs">
-      {(['HOME', 'EXP', 'SKILLS', 'PROJ'] as Screen[]).map((s) => (
-        <button
-          key={s}
-          onClick={() => setScreen(s)}
-          className={`px-2 py-0.5 transition-colors duration-75 cursor-pointer ${
-            currentScreen === s 
-              ? 'text-[#131313] bg-[#00F63E]' 
+const Header = ({ currentScreen, setScreen }: { currentScreen: Screen, setScreen: (s: Screen) => void }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleNav = (s: Screen) => {
+    setScreen(s);
+    setMenuOpen(false);
+  };
+
+  return (
+    <header className="fixed top-0 w-full z-50 flex justify-between items-center px-4 md:px-6 py-2 bg-[#131313] border-b border-[#00F63E] shadow-[0_0_8px_rgba(0,246,62,0.3)]">
+      <div className="flex items-center gap-3 text-lg font-bold text-[#00F63E] animate-pulse font-mono uppercase tracking-widest crt-glow">
+        <svg width="28" height="20" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="shrink-0">
+          <rect x="1.5" y="1.5" width="61" height="45" rx="6" stroke="#00F63E" strokeWidth="3" fill="#131313" />
+          <text x="10" y="34" fontFamily="monospace" fontSize="28" fill="#00F63E">&gt;_</text>
+        </svg>
+        PRIYANSHU ARYA
+      </div>
+
+      {/* desktop nav */}
+      <nav className="hidden md:flex items-center gap-6 font-mono uppercase tracking-widest text-xs">
+        {(['HOME', 'EXP', 'SKILLS', 'PROJ'] as Screen[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setScreen(s)}
+            className={`px-2 py-0.5 transition-colors duration-75 cursor-pointer ${currentScreen === s
+              ? 'text-[#131313] bg-[#00F63E]'
               : 'text-[#00F63E] opacity-70 hover:opacity-100 hover:bg-[#00F63E] hover:text-[#131313]'
-          }`}
-        >
-          {s}
+              }`}
+          >
+            {s}
+          </button>
+        ))}
+      </nav>
+
+      <div className="flex items-center gap-3">
+        {/* mobile menu button */}
+        <button aria-label="menu" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-[#00F63E] p-1">
+          <Menu size={18} />
         </button>
-      ))}
-    </nav>
-    <div className="flex items-center gap-4 text-[#00F63E]">
-      <Terminal size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
-      <Settings size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
-      <Power size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
-    </div>
-  </header>
-);
+
+        <div className="hidden md:flex items-center gap-4 text-[#00F63E]">
+          <Terminal size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
+          <Settings size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
+          <Power size={16} className="cursor-pointer hover:bg-[#00F63E] hover:text-[#131313] p-0.5" />
+        </div>
+      </div>
+
+      {/* mobile dropdown */}
+      {menuOpen && (
+        <div className="absolute left-4 right-4 top-14 bg-[#0f0f0f] border border-[#00F63E] p-3 rounded-md shadow-lg md:hidden z-50">
+          <div className="flex flex-col gap-2">
+            {(['HOME', 'EXP', 'SKILLS', 'PROJ'] as Screen[]).map(s => (
+              <button key={s} onClick={() => handleNav(s)} className={`text-left px-3 py-2 uppercase font-mono ${currentScreen === s ? 'bg-[#00F63E] text-[#131313]' : 'text-[#00F63E] hover:bg-[#00F63E]/10'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};
 
 const Footer = () => (
   <footer className="fixed bottom-0 w-full z-50 flex flex-row items-center justify-between px-6 py-1 bg-[#131313] bg-opacity-95 backdrop-blur-sm border-t border-[#00F63E]">
     <div className="font-mono text-[10px] uppercase text-[#00F63E]">
-      (C) 1998-2024 PRIYANSHU_ARYA.SYS
+      (C) 2001-2026 PRIYANSHU_ARYA.SYS
     </div>
     <div className="flex gap-6 font-mono text-[10px] uppercase">
       <a href="https://github.com/priyanshuarya22" target="_blank" rel="noopener noreferrer" className="text-[#00F63E] opacity-60 hover:text-white hover:bg-[#00F63E]/20 px-2 transition-all">GITHUB</a>
-      <a href="#" className="text-[#00F63E] opacity-60 hover:text-white hover:bg-[#00F63E]/20 px-2 transition-all">LINKEDIN</a>
+      <a href="https://www.linkedin.com/in/priyanshuarya22/" target="_blank" rel="noopener noreferrer" className="text-[#00F63E] opacity-60 hover:text-white hover:bg-[#00F63E]/20 px-2 transition-all">LINKEDIN</a>
       <a href="#" className="text-[#00F63E] opacity-60 hover:text-white hover:bg-[#00F63E]/20 px-2 transition-all">REJECT_ALL</a>
     </div>
     <div className="hidden md:block text-[#00F63E] font-mono text-[10px] uppercase opacity-50">
@@ -80,146 +157,156 @@ const Scanlines = () => (
 
 // --- Screens ---
 
-const HomeScreen = ({ setScreen }: { setScreen: (s: Screen) => void }) => (
-  <motion.div 
-    initial={{ opacity: 0 }} 
-    animate={{ opacity: 1 }} 
-    exit={{ opacity: 0 }}
-    className="pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto w-full"
-  >
-    {/* System Metadata */}
-    <div className="mb-12 border-l-2 border-[#00F63E] pl-4 py-2 bg-[#1b1b1b]/50">
-      <div className="flex flex-wrap gap-x-8 gap-y-2 text-[10px] uppercase tracking-tighter opacity-80">
-        <p><span className="text-white">[KERNEL]</span> V6.2.0-PORTFOLIO-STABLE</p>
-        <p><span className="text-white">[BOOT]</span> SEQUENCE: SUCCESS</p>
-        <p><span className="text-white">[USER]</span> PRIYANSHU_ARYA@AMZN_SDE_1</p>
-        <p><span className="text-white">[LOC]</span> BENGALURU, KA, IN</p>
-        <p><span className="text-white">[IP]</span> 127.0.0.1</p>
-      </div>
-    </div>
+const HomeScreen = ({ setScreen }: { setScreen: (s: Screen) => void }) => {
 
-    {/* ASCII Hero */}
-    <section className="mb-20 overflow-x-auto">
-      <pre className="text-[#00F63E] crt-glow font-bold leading-none text-[0.6rem] md:text-[1rem] lg:text-[1.2rem] whitespace-pre">
-{`██████╗ ██████╗ ██╗██╗   ██╗ █████╗ ███╗   ██╗███████╗██╗  ██╗██╗   ██╗
-██╔══██╗██╔══██╗██║╚██╗ ██╔╝██╔══██╗████╗  ██║██╔════╝██║  ██║██║   ██║
-██████╔╝██████╔╝██║ ╚████╔╝ ███████║██╔██╗ ██║███████╗███████║██║   ██║
-██╔═══╝ ██╔══██╗██║  ╚██╔╝  ██╔══██║██║╚██╗██║╚════██║██╔══██║██║   ██║
-██║     ██║  ██║██║   ██║   ██║  ██║██║ ╚████║███████║██║  ██║╚██████╔╝
-╚═╝     ╚═╝  ╚═╝╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝`}
-      </pre>
-      <div className="mt-4 flex items-center gap-4">
-        <div className="h-[1px] flex-grow bg-[#00F63E]/30"></div>
-        <p className="text-xs tracking-[0.3em] font-bold uppercase">IDENTIFIED: PRIYANSHU ARYA</p>
-        <div className="h-[1px] w-12 bg-[#00F63E]"></div>
-      </div>
-    </section>
-
-    {/* Bento Grid */}
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-      {/* Bio Card */}
-      <div className="md:col-span-8 border border-[#00F63E] p-6 bg-[#0e0e0e] relative overflow-hidden group">
-        <div className="absolute top-0 right-0 bg-[#00F63E] text-[#131313] px-3 py-1 text-[10px] font-bold uppercase">Profile_Manifest</div>
-        <h2 className="text-2xl font-black mb-4 crt-glow flex items-center gap-2">
-          <span className="text-white">&gt;</span> SDE 1 @ AMAZON
-        </h2>
-        <p className="text-sm leading-relaxed mb-6 opacity-90 max-w-2xl">
-          Software Development Engineer specializing in scalable backend systems, cloud infrastructure, and machine learning. Architecting high-availability solutions within the Amazon ecosystem. Focused on efficiency, performance, and the "Ghost in the Machine" paradigm.
-        </p>
-        <div className="flex flex-wrap gap-4 mt-8">
-          <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
-            <span className="text-[10px] opacity-60">SYSTEM_EXPERTISE</span>
-            <span className="text-xs font-bold">BACKEND_SCALING</span>
-          </div>
-          <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
-            <span className="text-[10px] opacity-60">CORE_INFRA</span>
-            <span className="text-xs font-bold">AWS_CLOUD_NATIVE</span>
-          </div>
-          <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
-            <span className="text-[10px] opacity-60">INTELLIGENCE</span>
-            <span className="text-xs font-bold">ML_MODELS_V3</span>
-          </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto w-full"
+    >
+      {/* System Metadata */}
+      <div className="mb-12 border-l-2 border-[#00F63E] pl-4 py-2 bg-[#1b1b1b]/50">
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-[10px] uppercase tracking-tighter opacity-80">
+          <p><span className="text-white">[KERNEL]</span> V6.2.0-PORTFOLIO-STABLE</p>
+          <p><span className="text-white">[BOOT]</span> SEQUENCE: SUCCESS</p>
+          <p><span className="text-white">[USER]</span> PRIYANSHU_ARYA@AMZN_SDE_1</p>
+          <p><span className="text-white">[LOC]</span> BENGALURU, KA, IN</p>
+          <p><span className="text-white">[IP]</span> 127.0.0.1</p>
         </div>
       </div>
 
-      {/* Visual Static */}
-      <div className="md:col-span-4 border border-[#00F63E]/30 bg-[#2a2a2a] flex flex-col justify-center items-center p-4 relative grayscale contrast-125 overflow-hidden">
-        <img 
-          src="https://picsum.photos/seed/cyber/400/400?blur=2" 
-          alt="Cybernetic aesthetic" 
-          className="w-full h-full object-cover opacity-40 mix-blend-screen"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-          <Cpu size={48} className="mb-4 crt-glow text-[#00F63E]" />
-          <span className="text-[10px] font-bold tracking-widest opacity-80 uppercase text-[#00F63E]">SYNAPTIC_LINK_ACTIVE</span>
+      {/* ASCII Hero */}
+      <section className="mb-20 overflow-x-auto">
+        <AsciiPre
+          className="text-[#00F63E] crt-glow font-mono font-bold leading-none text-[0.6rem] md:text-[1rem] lg:text-[1.2rem] whitespace-pre"
+          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace', lineHeight: 1 }}
+        >
+          {dedent(`
+    ██████╗ ██████╗ ██╗██╗   ██╗ █████╗ ███╗   ██╗███████╗██╗  ██╗██╗   ██╗
+    ██╔══██╗██╔══██╗██║╚██╗ ██╔╝██╔══██╗████╗  ██║██╔════╝██║  ██║██║   ██║
+    ██████╔╝██████╔╝██║ ╚████╔╝ ███████║██╔██╗ ██║███████╗███████║██║   ██║
+    ██╔═══╝ ██╔══██╗██║  ╚██╔╝  ██╔══██║██║╚██╗██║╚════██║██╔══██║██║   ██║
+    ██║     ██║  ██║██║   ██║   ██║  ██║██║ ╚████║███████║██║  ██║╚██████╔╝
+    ╚═╝     ╚═╝  ╚═╝╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝
+    `)}
+        </AsciiPre>
+        <div className="mt-4 flex items-center gap-4">
+          <div className="h-[1px] flex-grow bg-[#00F63E]/30"></div>
+          <p className="text-xs tracking-[0.3em] font-bold uppercase">IDENTIFIED: PRIYANSHU ARYA</p>
+          <div className="h-[1px] w-12 bg-[#00F63E]"></div>
         </div>
-      </div>
+      </section>
 
-      {/* Terminal Status */}
-      <div className="md:col-span-12 border border-[#00F63E] p-4 bg-[#0e0e0e] font-mono">
-        <div className="flex items-center gap-2 text-xs mb-4 border-b border-[#00F63E]/20 pb-2">
-          <span className="w-3 h-3 bg-red-600 rounded-full"></span>
-          <span className="w-3 h-3 bg-yellow-600 rounded-full"></span>
-          <span className="w-3 h-3 bg-green-600 rounded-full"></span>
-          <span className="ml-2 opacity-50">root@priyanshu-arya-os:~</span>
-        </div>
-        <div className="space-y-1 text-xs">
-          <p><span className="text-white">priyanshu@kernel:~$</span> fetch-system-status</p>
-          <p className="text-[#00F63E]/70">Connecting to AWS Region: ap-south-1...</p>
-          <p className="text-[#00F63E]/70">Initializing ML Pipelines [####################] 100%</p>
-          <p className="text-[#00F63E]/70">Latency check: 14ms</p>
-          <div className="flex items-center">
-            <span className="text-white">priyanshu@kernel:~$</span>
-            <span className="ml-2">exec initiate_contact</span>
-            <span className="cursor-blink ml-1 w-2 h-4 bg-[#00F63E]"></span>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Bio Card */}
+        <div className="md:col-span-8 border border-[#00F63E] p-6 bg-[#0e0e0e] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 bg-[#00F63E] text-[#131313] px-3 py-1 text-[10px] font-bold uppercase">Profile_Manifest</div>
+          <h2 className="text-2xl font-black mb-4 crt-glow flex items-center gap-2">
+            <span className="text-white">&gt;</span> SDE 1 @ AMAZON
+          </h2>
+          <p className="text-sm leading-relaxed mb-6 opacity-90 max-w-2xl">
+            Software Development Engineer specializing in scalable backend systems, cloud infrastructure, and machine learning. Architecting high-availability solutions within the Amazon ecosystem. Focused on efficiency, performance, and the "Ghost in the Machine" paradigm.
+          </p>
+          <div className="flex flex-wrap gap-4 mt-8">
+            <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
+              <span className="text-[10px] opacity-60">SYSTEM_EXPERTISE</span>
+              <span className="text-xs font-bold">BACKEND_SCALING</span>
+            </div>
+            <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
+              <span className="text-[10px] opacity-60">CORE_INFRA</span>
+              <span className="text-xs font-bold">AWS_CLOUD_NATIVE</span>
+            </div>
+            <div className="border border-[#00F63E]/40 p-3 bg-[#1b1b1b] flex flex-col gap-1">
+              <span className="text-[10px] opacity-60">INTELLIGENCE</span>
+              <span className="text-xs font-bold">ML_MODELS_V3</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Location Card */}
-      <div className="md:col-span-4 border border-[#00F63E]/30 p-4 bg-[#1b1b1b]/50">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-bold opacity-60 uppercase">Node_Location</span>
-          <MapPin size={14} className="text-[#00F63E]" />
-        </div>
-        <p className="text-lg font-bold crt-glow">BENGALURU</p>
-        <p className="text-xs opacity-80 mb-4">Karnataka, India [12.9716° N, 77.5946° E]</p>
-        <div className="w-full h-24 bg-[#353535] border border-[#00F63E]/20 overflow-hidden">
-          <img 
-            src="https://picsum.photos/seed/bengaluru/400/200?grayscale" 
-            alt="Location Map" 
-            className="w-full h-full object-cover brightness-50 contrast-150"
+        {/* Visual Static */}
+        <div className="md:col-span-4 border border-[#00F63E]/30 bg-[#2a2a2a] flex flex-col justify-center items-center p-4 relative grayscale contrast-125 overflow-hidden">
+          <img
+            src="/hacker.jpg"
+            alt="Hacker aesthetic"
+            className="w-full h-full object-cover opacity-60 mix-blend-screen"
             referrerPolicy="no-referrer"
           />
+
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+            <Cpu size={48} className="mb-4 crt-glow text-[#00F63E] pointer-events-none" />
+            <span className="text-[10px] font-bold tracking-widest opacity-80 uppercase text-[#00F63E] pointer-events-none">SYNAPTIC_LINK_ACTIVE</span>
+          </div>
+        </div>
+
+        {/* Terminal Status */}
+        <div className="md:col-span-12 border border-[#00F63E] p-4 bg-[#0e0e0e] font-mono">
+          <div className="flex items-center gap-2 text-xs mb-4 border-b border-[#00F63E]/20 pb-2">
+            <span className="w-3 h-3 bg-red-600 rounded-full"></span>
+            <span className="w-3 h-3 bg-yellow-600 rounded-full"></span>
+            <span className="w-3 h-3 bg-green-600 rounded-full"></span>
+            <span className="ml-2 opacity-50">root@priyanshu-arya-os:~</span>
+          </div>
+          <div className="space-y-1 text-xs">
+            <p><span className="text-white">priyanshu@kernel:~$</span> fetch-system-status</p>
+            <p className="text-[#00F63E]/70">Connecting to AWS Region: ap-south-1...</p>
+            <p className="text-[#00F63E]/70">Initializing ML Pipelines [####################] 100%</p>
+            <p className="text-[#00F63E]/70">Latency check: 14ms</p>
+            <div className="flex items-center">
+              <span className="text-white">priyanshu@kernel:~$</span>
+              <span className="ml-2">exec initiate_contact</span>
+              <span className="cursor-blink ml-1 w-2 h-4 bg-[#00F63E]"></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Location Card */}
+        <div className="md:col-span-4 border border-[#00F63E]/30 p-4 bg-[#1b1b1b]/50">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-bold opacity-60 uppercase">Node_Location</span>
+            <MapPin size={14} className="text-[#00F63E]" />
+          </div>
+          <p className="text-lg font-bold crt-glow">BENGALURU</p>
+          <p className="text-xs opacity-80 mb-4">Karnataka, India [12.9716° N, 77.5946° E]</p>
+          <div className="w-full h-24 bg-[#353535] border border-[#00F63E]/20 overflow-hidden">
+            <img
+              src="/bangalore.jpg"
+              alt="Bengaluru map"
+              className="w-full h-full object-cover brightness-60 contrast-120"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="md:col-span-8 flex flex-col md:flex-row gap-4">
+          <a
+            href="mailto:priyanshuarya22@gmail.com"
+            className="flex-1 bg-[#00F63E] text-[#131313] font-black py-4 px-6 flex items-center justify-between group hover:bg-white transition-all pixel-border cursor-pointer"
+          >
+            <span className="uppercase tracking-tighter">INITIATE_HANDSHAKE</span>
+            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+          </a>
+          <button
+            onClick={() => setScreen('PROJ')}
+            className="flex-1 border border-[#00F63E] text-[#00F63E] font-black py-4 px-6 flex items-center justify-between hover:bg-[#00F63E]/10 transition-all cursor-pointer"
+          >
+            <span className="uppercase tracking-tighter">[ VIEW_REPOS ]</span>
+            <Code size={20} />
+          </button>
         </div>
       </div>
+    </motion.div>
+  );
 
-      {/* Quick Actions */}
-      <div className="md:col-span-8 flex flex-col md:flex-row gap-4">
-        <button 
-          onClick={() => setScreen('PROJ')}
-          className="flex-1 bg-[#00F63E] text-[#131313] font-black py-4 px-6 flex items-center justify-between group hover:bg-white transition-all pixel-border cursor-pointer"
-        >
-          <span className="uppercase tracking-tighter">Initiate_Handshake</span>
-          <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-        </button>
-        <button 
-          onClick={() => setScreen('PROJ')}
-          className="flex-1 border border-[#00F63E] text-[#00F63E] font-black py-4 px-6 flex items-center justify-between hover:bg-[#00F63E]/10 transition-all cursor-pointer"
-        >
-          <span className="uppercase tracking-tighter">[ VIEW_REPOS ]</span>
-          <Code size={20} />
-        </button>
-      </div>
-    </div>
-  </motion.div>
-);
+};
 
 const ExperienceScreen = () => (
-  <motion.div 
-    initial={{ opacity: 0 }} 
-    animate={{ opacity: 1 }} 
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="pt-24 pb-20 px-6 max-w-5xl mx-auto w-full"
   >
@@ -232,25 +319,25 @@ const ExperienceScreen = () => (
           <p className="text-sm opacity-60 mt-2 font-mono">TIMESTAMP: 2024-10-27_04:12:00_UTC</p>
         </div>
         <div className="text-xs font-mono border border-[#00F63E]/30 p-2 bg-[#00F63E]/5">
-          STATUS: <span className="text-[#00F63E]">[ AUTHORIZED ]</span><br/>
-          USER: P_ARYA.SYS<br/>
+          STATUS: <span className="text-[#00F63E]">[ AUTHORIZED ]</span><br />
+          USER: P_ARYA.SYS<br />
           DIR: /ROOT/CORE/HISTORY
         </div>
       </div>
-      <div className="mt-4 text-[#00F63E]/40 select-none">
-        ========================================================================================
+      <div className="mt-4 select-none">
+        <div className="w-full h-px bg-[#00F63E]/40" />
       </div>
     </section>
 
     <div className="space-y-0 relative">
       <div className="absolute left-[11px] top-4 bottom-4 w-px bg-[#00F63E]/20"></div>
-      
+
       {[
         {
           year: '2026',
           title: 'Amazon | SDE 1',
           period: 'FEB 2026 - PRESENT // BENGALURU',
-          content: '> INITIALIZING SYSTEM...\n> ROLE_TYPE: FULL_STACK_ENGINEERING\n> CORE_SERVICES: RETAIL_INFRASTRUCTURE',
+          content: '> INITIALIZING SYSTEM...\n> ROLE_TYPE: FULL_STACK_ENGINEERING\n> CORE_SERVICES: PRIME_VIDEO',
           footer: '#_LOG_ENTRY_001_PENDING',
           active: true
         },
@@ -298,7 +385,7 @@ const ExperienceScreen = () => (
               {exp.objective && <p className="text-sm leading-relaxed opacity-70"><span className="text-[#00F63E]/60">OBJECTIVE:</span> {exp.objective}</p>}
               {exp.scope && <p className="text-sm leading-relaxed opacity-70"><span className="text-[#00F63E]/60">SCOPE:</span> {exp.scope}</p>}
               {exp.task && <p className="text-sm leading-relaxed opacity-70"><span className="text-[#00F63E]/60">TASK:</span> {exp.task}</p>}
-              
+
               {exp.tags && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] uppercase mt-4">
                   {exp.tags.map(tag => (
@@ -311,7 +398,7 @@ const ExperienceScreen = () => (
           </div>
         </div>
       ))}
-      
+
       <div className="relative pl-12 pt-4">
         <div className="font-mono text-[#00F63E] text-lg">
           <span>$ FETCH_MORE_DATA</span>
@@ -323,21 +410,26 @@ const ExperienceScreen = () => (
 );
 
 const SkillsScreen = () => (
-  <motion.div 
-    initial={{ opacity: 0 }} 
-    animate={{ opacity: 1 }} 
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="pt-24 pb-20 px-6 max-w-6xl mx-auto w-full"
   >
-    <div className="mb-12 crt-glow">
-      <pre className="text-[0.5rem] leading-[0.6rem] md:text-xs md:leading-tight">
-{` ██████╗██╗   ██╗███████╗ ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
-██╔════╝╚██╗ ██╔╝██╔════╝██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
-╚█████╗  ╚████╔╝ ███████╗██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
- ╚═══██╗  ╚██╔╝  ╚════██║██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
-██████╔╝   ██║   ███████║╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
-╚═════╝    ╚═╝   ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ `}
-      </pre>
+    <div className="mb-12">
+      <AsciiPre
+        className="text-[#00F63E] crt-glow font-mono font-bold leading-none text-[0.7rem] md:text-[0.95rem] lg:text-[1.05rem] whitespace-pre"
+        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace', lineHeight: 1 }}
+      >
+        {dedent(`
+ ███████╗██╗   ██╗███████╗ ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
+ ██╔════╝╚██╗ ██╔╝██╔════╝██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
+ ███████╗ ╚████╔╝ ███████╗██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+ ╚════██║  ╚██╔╝  ╚════██║██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+ ███████║   ██║   ███████║╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+ ╚══════╝   ╚═╝   ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ 
+ `)}
+      </AsciiPre>
       <div className="mt-4 flex items-center gap-2 text-sm">
         <span className="bg-[#00F63E] text-black px-2">MODULE: SYSCONFIG_V2.0</span>
         <span className="opacity-50">LOCATION: /ROOT/USER/PRIYANSHU/CONFIG</span>
@@ -403,10 +495,10 @@ const SkillsScreen = () => (
               <div className="text-[10px] text-[#0d4508] font-bold">DEC 2021 - JULY 2025</div>
               <h4 className="font-bold text-sm">IIIT Sonepat</h4>
               <div className="text-xs opacity-70">B.Tech, Information Technology</div>
-              <div className="mt-2 h-1 w-full bg-[#2a2a2a] overflow-hidden">
-                <div className="h-full bg-[#00F63E] w-[85%]"></div>
+              <div className="mt-2 flex items-center gap-2">
+                <CheckCircle2 size={12} />
+                <span className="text-[10px] uppercase">Credential: COMPLETED</span>
               </div>
-              <div className="text-[8px] mt-1 text-right">PROGRESS: 85%</div>
             </div>
             <div className="relative pl-4 border-l border-[#00F63E]/20">
               <div className="absolute -left-[5px] top-0 w-2 h-2 bg-[#00F63E]"></div>
@@ -438,129 +530,188 @@ const SkillsScreen = () => (
   </motion.div>
 );
 
-const ProjectsScreen = () => (
-  <motion.div 
-    initial={{ opacity: 0 }} 
-    animate={{ opacity: 1 }} 
-    exit={{ opacity: 0 }}
-    className="pt-24 pb-20 px-6 max-w-7xl mx-auto w-full"
-  >
-    <section className="mb-12">
-      <pre className="text-[10px] md:text-xs leading-none text-[#00F63E] opacity-80 mb-6">
-{`  _____  _____   ____       _ ______ _____ _______ _____ 
- |  __ \\|  __ \\ / __ \\     | |  ____/ ____|__   __/ ____|
- | |__) | |__) | |  | |    | | |__ | |       | | | (___  
- |  ___/|  _  /| |  | |_   | |  __|| |       | |  \\___ \\ 
- | |    | | \\ \\| |__| | |__| | |___| |____   | |  ____) |
- |_|    |_|  \\_\\\\____/ \\____/|______\\_____|  |_| |_____/ `}
-      </pre>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#00F63E] font-bold">DIRECTORY:</span>
-        <span className="bg-[#2a2a2a] px-2 text-white">/root/projects/github.com/priyanshuarya22</span>
-      </div>
-      <div className="h-px w-full bg-[#474747] opacity-20 mb-4"></div>
-      <p className="text-[#c6c6c6] text-sm max-w-2xl">
-        SYSTEM_LOG: Initializing repository grid... Fetching metadata for 12 active modules. Filtering by deployment status: [STABLE].
-      </p>
-    </section>
+const ProjectsScreen = () => {
+  const [repos, setRepos] = useState<any[] | null>(null);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [totalReposCount, setTotalReposCount] = useState<number | null>(null);
+  const [contributionsCount, setContributionsCount] = useState<number | null>(null);
+  const [lastCommitAgo, setLastCommitAgo] = useState<string | null>(null);
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[
-        {
-          id: '001',
-          icon: <Cloud size={18} />,
-          title: 'cloud-anomaly-detector',
-          desc: 'Real-time traffic analysis engine utilizing machine learning to identify DDoS patterns in AWS VPC logs.',
-          tags: ['PYTHON', 'AWS_LAMBDA', 'TERRAFORM'],
-          stars: 124,
-          forks: 42
-        },
-        {
-          id: '002',
-          icon: <ChevronRight size={18} />,
-          title: 'distributed-task-queue',
-          desc: 'Low-latency message broker system designed for high-concurrency microservices orchestration.',
-          tags: ['GO', 'REDIS', 'GRPC'],
-          stars: 89,
-          forks: 15
-        },
-        {
-          id: '003',
-          icon: <Code size={18} />,
-          title: 'serverless-api-gateway',
-          desc: 'Custom implementation of a lightweight API gateway with dynamic rate limiting and auth injection.',
-          tags: ['NODEJS', 'DYNAMODB', 'K8S'],
-          stars: 215,
-          forks: 67
-        },
-        {
-          id: '004',
-          icon: <Shield size={18} />,
-          title: 'zero-trust-proxy',
-          desc: 'Identity-aware proxy for securing internal dashboard access without a traditional VPN.',
-          tags: ['RUST', 'OAUTH2', 'DOCKER'],
-          stars: 56,
-          forks: 8
-        },
-        {
-          id: '005',
-          icon: <Database size={18} />,
-          title: 'ledger-blockchain-core',
-          desc: 'Experimental PoW blockchain implementation to demonstrate consensus algorithms.',
-          tags: ['C++', 'OPENSSL'],
-          stars: 312,
-          forks: 110
+  useEffect(() => {
+    setLoadingRepos(true);
+    fetch('https://api.github.com/users/priyanshuarya22/repos?per_page=100&sort=updated')
+      .then(res => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setRepos(data.map(r => ({
+            id: r.id,
+            title: r.name,
+            desc: r.description || '',
+            tags: r.language ? [String(r.language).toUpperCase()] : [],
+            stars: r.stargazers_count ?? 0,
+            forks: r.forks_count ?? 0,
+            html_url: r.html_url,
+            pushed_at: r.pushed_at || null
+          })));
+        } else {
+          setRepos([]);
         }
-      ].map(proj => (
-        <div key={proj.id} className="border border-[#00F63E] bg-[#0e0e0e] p-4 group hover:bg-[#00F63E]/5 transition-all shadow-[0_0_8px_rgba(0,246,62,0.1)]">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-xs text-[#0d4508]">[{proj.id}]</span>
-            <span className="text-[#00F63E]">{proj.icon}</span>
-          </div>
-          <h3 className="text-[#00F63E] font-bold mb-2 text-lg uppercase tracking-tight">{proj.title}</h3>
-          <p className="text-xs text-[#c6c6c6] mb-6 leading-relaxed">{proj.desc}</p>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {proj.tags.map(tag => (
-              <span key={tag} className="text-[10px] border border-[#00F63E] px-1 py-0.5">{tag}</span>
-            ))}
-          </div>
-          <div className="flex justify-between items-center text-[10px] font-mono text-[#00F63E] pt-4 border-t border-[#474747]/30">
-            <div className="flex gap-4">
-              <span>STARS: {proj.stars}</span>
-              <span>FORKS: {proj.forks}</span>
+      })
+      .catch(() => setRepos([]))
+      .finally(() => setLoadingRepos(false));
+
+    // fetch user info and recent public events to derive contributions/last-commit
+    fetch('https://api.github.com/users/priyanshuarya22')
+      .then(r => r.json())
+      .then(u => {
+        if (u && typeof u.public_repos === 'number') setTotalReposCount(u.public_repos);
+      })
+      .catch(() => null);
+
+    fetch('https://api.github.com/users/priyanshuarya22/events/public')
+      .then(r => r.json())
+      .then(events => {
+        if (Array.isArray(events)) {
+          // contributions proxy: sum commit counts from recent PushEvents
+          const contribs = events.reduce((acc: number, ev: any) => {
+            if (ev.type === 'PushEvent' && ev.payload && Array.isArray(ev.payload.commits)) {
+              return acc + ev.payload.commits.length;
+            }
+            return acc;
+          }, 0);
+          setContributionsCount(contribs);
+
+          // derive most recent commit timestamp from events
+          const pushTimes = events.filter((e: any) => e.type === 'PushEvent' && e.created_at).map((e: any) => e.created_at);
+          if (pushTimes.length) {
+            const latest = pushTimes.sort().reverse()[0];
+            setLastCommitAgo(timeAgo(new Date(latest)));
+          }
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  const iconFor = (lang: string | undefined) => {
+    if (!lang) return <Code size={18} />;
+    const l = lang.toLowerCase();
+    if (l.includes('python')) return <Cloud size={18} />;
+    if (l.includes('rust')) return <Shield size={18} />;
+    if (l.includes('sql') || l.includes('postgres') || l.includes('db')) return <Database size={18} />;
+    return <Code size={18} />;
+  };
+
+  function timeAgo(date: Date) {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    const intervals: [number, string][] = [
+      [31536000, 'yr'],
+      [2592000, 'mo'],
+      [86400, 'd'],
+      [3600, 'h'],
+      [60, 'm'],
+      [1, 's']
+    ];
+    for (const [sec, label] of intervals) {
+      const val = Math.floor(seconds / sec);
+      if (val >= 1) return `${val}${label}_AGO`;
+    }
+    return 'just_now';
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="pt-24 pb-20 px-6 max-w-7xl mx-auto w-full"
+    >
+      <section className="mb-12">
+        <pre className="text-[#00F63E] crt-glow font-mono font-bold leading-none text-[0.7rem] md:text-[0.95rem] lg:text-[1.05rem] whitespace-pre"
+          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace', lineHeight: 1 }}
+        >
+          {dedent(`
+██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗ ████████╗
+██╔══██╗██╔══██╗██╔═══██╗     ██║██╔════╝██╔════╝ ╚══██╔══╝
+██████╔╝██████╔╝██║   ██║     ██║█████╗  ██║         ██║   
+██╔═══╝ ██╔══██╗██║   ██║██   ██║██╔══╝  ██║         ██║   
+██║     ██║  ██║╚██████╔╝╚█████╔╝███████╗╚██████╗    ██║   
+╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚════╝ ╚══════╝ ╚═════╝    ╚═╝  
+          `)}
+        </pre>
+        <div className="mt-4 flex items-center gap-2 mb-2">
+          <span className="text-[#00F63E] font-bold">DIRECTORY:</span>
+          <a
+            href="https://github.com/priyanshuarya22"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#2a2a2a] px-2 text-white max-w-full break-words break-all whitespace-normal hover:underline"
+            title="Open GitHub profile"
+          >/root/projects/github.com/priyanshuarya22</a>
+        </div>
+        <div className="h-px w-full bg-[#474747] opacity-20 mb-4"></div>
+        <p className="text-[#c6c6c6] text-sm max-w-2xl">
+          SYSTEM_LOG: Initializing repository grid... Fetching metadata for 12 active modules. Filtering by deployment status: [STABLE].
+        </p>
+      </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loadingRepos && (
+          <div className="col-span-full text-center text-[#00F63E]">Loading repositories...</div>
+        )}
+        {!loadingRepos && (!repos || repos.length === 0) && (
+          <div className="col-span-full text-center text-[#00F63E]">No repositories found.</div>
+        )}
+        {!loadingRepos && repos && repos.map(repo => (
+          <div key={repo.id} className="border border-[#00F63E] bg-[#0e0e0e] p-4 group hover:bg-[#00F63E]/5 transition-all shadow-[0_0_8px_rgba(0,246,62,0.1)]">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-xs text-[#0d4508]">[{repo.id}]</span>
+              <span className="text-[#00F63E]">{iconFor(repo.tags && repo.tags[0])}</span>
             </div>
-            <span className="group-hover:translate-x-1 transition-transform cursor-pointer underline">VIEW_SRC -&gt;</span>
+            <h3 className="text-[#00F63E] font-bold mb-2 text-lg uppercase tracking-tight">{repo.title}</h3>
+            <p className="text-xs text-[#c6c6c6] mb-6 leading-relaxed">{repo.desc}</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {(repo.tags || []).map((tag: string) => (
+                <span key={tag} className="text-[10px] border border-[#00F63E] px-1 py-0.5">{tag}</span>
+              ))}
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-mono text-[#00F63E] pt-4 border-t border-[#474747]/30">
+              <div className="flex gap-4">
+                <span>STARS: {repo.stars}</span>
+                <span>FORKS: {repo.forks}</span>
+              </div>
+              <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="group-hover:translate-x-1 transition-transform cursor-pointer underline">VIEW_SRC -&gt;</a>
+            </div>
           </div>
+        ))}
+
+        <div className="border border-dashed border-[#00F63E]/30 bg-transparent p-4 flex flex-col items-center justify-center opacity-50">
+          <div className="w-8 h-8 border border-[#00F63E] flex items-center justify-center mb-2">+</div>
+          <p className="text-[10px] font-mono tracking-widest uppercase">Initializing_New_Repo...</p>
+          <p className="text-[10px] font-mono mt-1">EST_COMPLETION: Q3_2024</p>
         </div>
-      ))}
-      
-      <div className="border border-dashed border-[#00F63E]/30 bg-transparent p-4 flex flex-col items-center justify-center opacity-50">
-        <div className="w-8 h-8 border border-[#00F63E] flex items-center justify-center mb-2">+</div>
-        <p className="text-[10px] font-mono tracking-widest uppercase">Initializing_New_Repo...</p>
-        <p className="text-[10px] font-mono mt-1">EST_COMPLETION: Q3_2024</p>
       </div>
-    </div>
 
-    <section className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-      {[
-        { label: 'TOTAL_REPOS', val: '048' },
-        { label: 'CONTRIBUTIONS', val: '1,204' },
-        { label: 'SYS_UPTIME', val: '99.98%' },
-        { label: 'LAST_COMMIT', val: '2H_AGO' }
-      ].map(stat => (
-        <div key={stat.label} className="bg-[#1f1f1f] p-4 border-l-2 border-[#00F63E]">
-          <div className="text-[10px] text-[#c6c6c6] mb-1">{stat.label}</div>
-          <div className="text-xl font-bold text-[#00F63E]">{stat.val}</div>
-        </div>
-      ))}
-    </section>
+      <section className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          { label: 'TOTAL_REPOS', val: (totalReposCount ?? (repos ? repos.length : null)) },
+          { label: 'CONTRIBUTIONS', val: (contributionsCount ?? '—') },
+          { label: 'SYS_UPTIME', val: '99.98%' },
+          { label: 'LAST_COMMIT', val: (lastCommitAgo ?? '—') }
+        ].map(stat => (
+          <div key={stat.label} className="bg-[#1f1f1f] p-4 border-l-2 border-[#00F63E]">
+            <div className="text-[10px] text-[#c6c6c6] mb-1">{stat.label}</div>
+            <div className="text-xl font-bold text-[#00F63E]">{stat.val ?? '—'}</div>
+          </div>
+        ))}
+      </section>
 
-    <div className="mt-12 mb-8 text-center text-xs opacity-40">
-      <span className="text-[#00F63E]">&gt;</span> sudo apt-get install more-projects
-      <span className="inline-block w-2 h-4 bg-[#00F63E] align-middle ml-1 cursor-blink"></span>
-    </div>
-  </motion.div>
-);
+      <div className="mt-12 mb-8 text-center text-xs opacity-40">
+        <span className="text-[#00F63E]">&gt;</span> sudo apt-get install more-projects
+        <span className="inline-block w-2 h-4 bg-[#00F63E] align-middle ml-1 cursor-blink"></span>
+      </div>
+    </motion.div>
+  );
+}
 
 // --- Main App ---
 
@@ -571,7 +722,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col selection:bg-[#00F63E] selection:text-black">
       <Scanlines />
       <Header currentScreen={screen} setScreen={setScreen} />
-      
+
       <main className="flex-grow">
         <AnimatePresence mode="wait">
           {screen === 'HOME' && <HomeScreen key="home" setScreen={setScreen} />}
